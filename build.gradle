@@ -1,43 +1,232 @@
-def _PLATFORM = project.properties.get('buildPlatform')
-assert (_PLATFORM == 'android' || _PLATFORM == 'netty' || _PLATFORM == 'next' || _PLATFORM == null)
+def IS_ANDROID = project.hasProperty('IS_ANDROID') ? project.IS_ANDROID: true
+def IS_NEXT = project.hasProperty('IS_NEXT') ? project.IS_NEXT: false
+def IS_NETTY = project.hasProperty('IS_NETTY') ? project.IS_NETTY: false
+def ARTIFACT_ANDROID = (project.hasProperty('BUILD_LEGACY') && project.BUILD_LEGACY) ? 'autobahn-android-legacy': 'autobahn-android'
 
-def _PUBLISH = true
-if (_PLATFORM == null) {
-    _PLATFORM = 'android'
-    _PUBLISH = false
-}
+apply plugin: IS_ANDROID ? 'com.android.library': 'java-library'
+apply plugin: 'maven-publish'
+apply plugin: 'signing'
 
-project.ext {
-    PLATFORM = _PLATFORM
-    PLUGIN_ANDROID_APP = 'com.android.application'
-    PLUGIN_JAVA_APP = 'application'
-    IS_ANDROID = _PLATFORM == 'android'
-    IS_NETTY = _PLATFORM == 'netty'
-    IS_NEXT = _PLATFORM == 'next'
-    BUILD_LEGACY = project.properties.get('buildLegacy', false)
-    PUBLISH = _PUBLISH
-}
+def ARTIFACT_JAVA = 'autobahn-java'
+def ARTIFACT_NEXT = 'autobahn'
 
-buildscript {
-    repositories {
-        jcenter()
-        google()
-        mavenCentral()
+def groupID = 'io.crossbar.autobahn'
+def licenseName = 'MIT'
+def licenseUrl = 'https://opensource.org/licenses/MIT'
+def relVersion = System.getenv().containsKey('AUTOBAHN_BUILD_VERSION') ? System.getenv(
+        'AUTOBAHN_BUILD_VERSION'): '21.7.2'
+def siteUrl = 'https://github.com/crossbario/autobahn-java'
+def SONATYPE_USER = System.getenv().containsKey('SONATYPE_USER') ? System.getenv('SONATYPE_USER'): ''
+def SONATYPE_PASS = System.getenv().containsKey('SONATYPE_PASS') ? System.getenv('SONATYPE_PASS'): ''
+
+apply from: 'https://gist.githubusercontent.com/tuancoltech/1d9f528b387f84757123a230662c81ae/raw/b326adba12613677e97b04e386a9983cc9fb565a/read_properties.gradle'
+
+def mavenUser = readLocalProperty("PUBLISH_LIB_ACTOR")
+def mavenToken = readLocalProperty("PUBLISH_LIB_TOKEN")
+
+dependencies {
+    api 'com.fasterxml.jackson.core:jackson-core:2.16.1'
+    implementation 'com.fasterxml.jackson.core:jackson-databind:2.16.1'
+    implementation 'com.fasterxml.jackson.dataformat:jackson-dataformat-cbor:2.16.1'
+    implementation 'org.msgpack:jackson-dataformat-msgpack:0.9.8'
+    implementation('io.xconn:cryptology:1.0.1') {
+        exclude group: "org.bouncycastle", module: "bcprov-jdk18on"
     }
-    // Android specific dependencies.
-    if (project.properties.get('buildPlatform', 'android') == 'android') {
-        dependencies {
-            classpath 'com.android.tools.build:gradle:8.2.2'
+    if (IS_ANDROID) {
+        implementation 'org.web3j:core:4.8.8-android'
+        implementation 'org.web3j:abi:4.8.8-android'
+        implementation 'org.web3j:utils:4.8.8-android'
+    } else{
+        implementation 'org.web3j:core:4.11.0'
+        implementation 'org.web3j:abi:4.11.0'
+        implementation 'org.web3j:utils:4.11.0'
+        implementation 'org.json:json:20240205'
+        implementation 'com.fasterxml.jackson.datatype:jackson-datatype-jsr310:2.12.5'
+    }
+    if (IS_NETTY) {
+        implementation 'io.netty:netty-codec-http:4.1.106.Final'
+        implementation 'io.netty:netty-handler:4.1.106.Final'
+    }
+    testImplementation 'junit:junit:4.13.2'
+}
+
+// Create the pom configuration:
+def pomConfig = {
+    // Set your license
+    licenses {
+        license {
+            name licenseName
+            url licenseUrl
         }
     }
+    developers {
+        developer {
+            id "crossbario"
+            name "Crossbar.io"
+            email "support@crossbario.com"
+        }
+    }
+    scm {
+        url siteUrl
+    }
 }
 
-allprojects {
-    repositories {
-        jcenter()
-        google()
-        mavenCentral()
-        maven { url "https://dl.bintray.com/ethereum/maven/" }
-        maven { url "https://artifacts.consensys.net/public/maven/maven/" }
+if (IS_ANDROID) {
+    android {
+        namespace "io.crossbar.autobahn"
+        defaultConfig {
+            compileSdk 34
+            minSdkVersion 26
+            targetSdkVersion 34
+        }
+        buildTypes {
+            release {
+                minifyEnabled false
+                proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.txt'
+            }
+        }
+        sourceSets {
+            main {
+                java {
+                    exclude 'io/crossbar/autobahn/wamp/transports/Netty*'
+                    exclude 'io/crossbar/autobahn/utils/ABJLogger.java'
+                }
+            }
+        }
+        compileOptions {
+            sourceCompatibility JavaVersion.VERSION_1_8
+            targetCompatibility JavaVersion.VERSION_1_8
+        }
+        lintOptions {
+            abortOnError false
+        }
+        packagingOptions {
+            exclude 'META-INF/spring.tooling'
+            exclude 'META-INF/spring.handlers'
+            exclude 'META-INF/spring.schemas'
+            exclude 'META-INF/license.txt'
+            exclude 'META-INF/notice.txt'
+        }
+    }
+
+    task sourcesJar(type: Jar) {
+        archiveClassifier.set("sources")
+        from android.sourceSets.main.java.srcDirs
+    }
+
+    task javadoc(type: Javadoc) {
+        failOnError false
+        source = android.sourceSets.main.java.sourceFiles
+//        classpath += project.files(android.getBootClasspath().join(File.pathSeparator))
+//        classpath += configurations.implementation
+    }
+
+    task javadocJar(type: Jar, dependsOn: javadoc) {
+        archiveClassifier.set("javadoc")
+        from javadoc.destinationDir
+    }
+
+    project.archivesBaseName = ARTIFACT_ANDROID
+    group = groupID
+    version = relVersion
+
+    afterEvaluate {
+        javadoc.classpath += files(android.libraryVariants.collect { variant ->
+            variant.javaCompileProvider.get().classpath.files
+        })
+    }
+
+    publishing {
+        repositories {
+            maven {
+                name = "GithubPackages"
+                url = "https://maven.pkg.github.com/tuancoltech/autobahn-kotlin"
+                credentials {
+                    username = mavenUser
+                    password = mavenToken
+                }
+            }
+        }
+    }
+} else {
+    task sourcesJar(type: Jar, dependsOn: classes) {
+        archiveClassifier.set("sources")
+        from sourceSets.main.allSource
+    }
+    task javadocJar(type: Jar, dependsOn: javadoc) {
+        archiveClassifier.set("javadoc")
+        from javadoc.destinationDir
+    }
+
+    if (IS_NEXT) {
+        sourceSets {
+            main {
+                java {
+                    exclude 'io/crossbar/autobahn/wamp/transports/AndroidWebSocket.java'
+                    exclude 'io/crossbar/autobahn/wamp/transports/Netty*'
+                    exclude 'io/crossbar/autobahn/websocket/utils/AndroidThreadMessenger.java'
+                    exclude 'io/crossbar/autobahn/utils/ABALogger.java'
+                }
+            }
+        }
+    } else {
+        sourceSets {
+            main {
+                java {
+                    exclude 'io/crossbar/autobahn/wamp/transports/AndroidWebSocket.java'
+                    exclude 'io/crossbar/autobahn/wamp/transports/WebSocket.java'
+                    exclude 'io/crossbar/autobahn/websocket'
+                    exclude 'io/crossbar/autobahn/utils/ABALogger.java'
+                }
+            }
+        }
+    }
+    jar {
+        version = relVersion
+    }
+    sourceCompatibility = JavaVersion.VERSION_17
+    targetCompatibility = JavaVersion.VERSION_17
+}
+
+afterEvaluate {
+    publishing {
+        publications {
+            release(MavenPublication) {
+                if (IS_ANDROID) {
+                    from components.findByName('release')
+                    artifactId ARTIFACT_ANDROID
+                } else {
+                    from components.java
+                    artifactId IS_NEXT ? ARTIFACT_NEXT : ARTIFACT_JAVA
+                }
+
+                artifact sourcesJar
+                artifact javadocJar
+
+                groupId groupID
+                version relVersion
+                pom.withXml {
+                    def root = asNode()
+                    root.appendNode('description', 'WebSocket & WAMP for Java8+')
+                    root.appendNode('name', 'Autobahn Java')
+                    root.appendNode('url', siteUrl)
+                    root.children().last() + pomConfig
+                }
+            }
+        }
+        repositories {
+            maven {
+                name = "GithubPackages"
+                url = "https://maven.pkg.github.com/tuancoltech/autobahn-kotlin"
+                credentials {
+                    username = mavenUser
+                    password = mavenToken
+                }
+            }
+        }
+        signing {
+            required false
+            sign publishing.publications.release
+        }
     }
 }
