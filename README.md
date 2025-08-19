@@ -41,9 +41,39 @@ Grab via Maven:
 Gradle:
 ```groovy
 dependencies {
-    implementation 'io.crossbar.autobahn:autobahn-android:21.7.1'
+    implementation 'io.crossbar.autobahn:autobahn-android:21.7.2'
 }
 ```
+
+In your root `build.gradle`, add:
+```groovy
+
+def properties = new Properties()
+properties.load(project.rootProject.file("local.properties").newDataInputStream())
+def autoBahnActor = properties.getProperty("AUTOBAHN_ACTOR")
+def autoBahnToken = properties.getProperty("AUTOBAHN_TOKEN")
+
+allprojects {
+    repositories {
+        // ...
+        maven {
+            name = "GitHubPackages"
+            url = uri("https://maven.pkg.github.com/tuancoltech/autobahn-kotlin")
+            credentials {
+                username = autoBahnActor
+                password = autoBahnToken
+            }
+        }
+    }
+}
+```
+
+In your root `local.properties`, add:
+```
+AUTOBAHN_TOKEN=<Your Personal Access Token>
+AUTOBAHN_ACTOR=<Your Github username>
+```
+
 For non-android systems use artifactID `autobahn-java` or just
 Download [the latest JAR](https://search.maven.org/remote_content?g=io.crossbar.autobahn&a=autobahn-java&v=LATEST)
 
