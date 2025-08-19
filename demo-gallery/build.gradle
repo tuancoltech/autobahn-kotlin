@@ -1,6 +1,7 @@
-apply plugin: project.IS_ANDROID ? project.PLUGIN_ANDROID_APP: project.PLUGIN_JAVA_APP
+def IS_ANDROID = project.hasProperty('IS_ANDROID') ? project.IS_ANDROID: true
+apply plugin: IS_ANDROID ? 'com.android.application': 'application'
 
-if (plugins.hasPlugin(project.PLUGIN_ANDROID_APP)) {
+if (plugins.hasPlugin('com.android.application')) {
     android {
 
         defaultConfig {

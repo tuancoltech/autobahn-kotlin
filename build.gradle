@@ -1,3 +1,24 @@
+buildscript {
+    repositories {
+        google()
+        mavenCentral()
+    }
+    dependencies {
+        classpath "com.android.tools.build:gradle:8.4.2"
+        // classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:1.9.24" // if Kotlin
+    }
+}
+
+allprojects {
+    repositories {
+        google()
+        mavenCentral()
+        maven {
+            url "https://jitpack.io"
+        }
+    }
+}
+
 def IS_ANDROID = project.hasProperty('IS_ANDROID') ? project.IS_ANDROID: true
 def IS_NEXT = project.hasProperty('IS_NEXT') ? project.IS_NEXT: false
 def IS_NETTY = project.hasProperty('IS_NETTY') ? project.IS_NETTY: false
