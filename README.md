@@ -394,3 +394,10 @@ Version 1 only supported non-secure WebSocket on Android and only supported WAMP
 Both of these issues are fixed in the (current) version of Autobahn|Java.
 
 ---
+
+
+## ❤️ Support
+If you find this project helpful, you can support it here:
+
+- [☕ Buy me a coffee](https://buymeacoffee.com/tuancoltech) – keeps me awake coding!
+- Donate in crypto: 0x9D8dC28E9d9C4C5a387A858182edF9ab8B90F565 (ERC-20)
