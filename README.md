@@ -1,4 +1,6 @@
-# **Autobahn**|Java
+# **Autobahn**|Kotlin
+
+This project is re-written in Kotlin, based on [Autobahn-Java](https://github.com/crossbario/autobahn-java).
 
 Client library providing [WAMP](http://wamp-proto.org/) on Java 8 ([Netty](https://netty.io/)) and Android, plus (secure) WebSocket for Android.
 
@@ -8,7 +10,7 @@ Client library providing [WAMP](http://wamp-proto.org/) on Java 8 ([Netty](https
 
 ---
 
-Autobahn|Java is a subproject of the [Autobahn project](http://crossbar.io/autobahn/) and provides open-source client implementations for
+Autobahn|Kotlin is a subproject of the [Autobahn project](http://crossbar.io/autobahn/) and provides open-source client implementations for
 
 * **[The WebSocket Protocol](http://tools.ietf.org/html/rfc6455)**
 * **[The Web Application Messaging Protocol (WAMP)](http://wamp-proto.org/)**
