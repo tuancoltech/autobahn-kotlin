@@ -1,12 +1,13 @@
 def IS_ANDROID = project.hasProperty('IS_ANDROID') ? project.IS_ANDROID: true
 apply plugin: IS_ANDROID ? 'com.android.application': 'application'
+apply plugin: 'org.jetbrains.kotlin.android'
 
 if (plugins.hasPlugin('com.android.application')) {
     android {
 
         defaultConfig {
             namespace "io.crossbar.autobahn.demogallery"
-            compileSdk 34
+            compileSdk 36
             minSdkVersion 26
             targetSdkVersion 34
             multiDexEnabled true
@@ -38,6 +39,10 @@ if (plugins.hasPlugin('com.android.application')) {
             exclude 'META-INF/notice.txt'
             exclude 'META-INF/INDEX.list'
         }
+
+        kotlinOptions {
+            jvmTarget = JavaVersion.VERSION_1_8
+        }
     }
 
     dependencies {
@@ -50,6 +55,8 @@ if (plugins.hasPlugin('com.android.application')) {
         implementation 'com.basgeekball:awesome-validation:4.2'
         implementation 'org.web3j:crypto:4.8.8-android'
         implementation 'com.google.guava:listenablefuture:9999.0-empty-to-avoid-conflict-with-guava'
+
+        implementation 'androidx.core:core-ktx:1.17.0'
     }
 } else if (project.IS_NEXT) {
     // Nothing useful is produced here, however this avoids
