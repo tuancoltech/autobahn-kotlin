@@ -1,10 +1,14 @@
 buildscript {
+    ext {
+        kotlin_version = '1.9.24'
+    }
     repositories {
         google()
         mavenCentral()
     }
     dependencies {
-        classpath "com.android.tools.build:gradle:8.4.2"
+        classpath "com.android.tools.build:gradle:8.9.1"
+        classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
         // classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:1.9.24" // if Kotlin
     }
 }
@@ -27,6 +31,7 @@ def ARTIFACT_ANDROID = (project.hasProperty('BUILD_LEGACY') && project.BUILD_LEG
 apply plugin: IS_ANDROID ? 'com.android.library': 'java-library'
 apply plugin: 'maven-publish'
 apply plugin: 'signing'
+apply plugin: 'org.jetbrains.kotlin.android'
 
 def ARTIFACT_JAVA = 'autobahn-java'
 def ARTIFACT_NEXT = 'autobahn'
@@ -57,6 +62,7 @@ dependencies {
         implementation 'org.web3j:core:4.8.8-android'
         implementation 'org.web3j:abi:4.8.8-android'
         implementation 'org.web3j:utils:4.8.8-android'
+        implementation 'androidx.core:core-ktx:1.17.0'
     } else{
         implementation 'org.web3j:core:4.11.0'
         implementation 'org.web3j:abi:4.11.0'
@@ -96,7 +102,7 @@ if (IS_ANDROID) {
     android {
         namespace "io.crossbar.autobahn"
         defaultConfig {
-            compileSdk 34
+            compileSdk 36
             minSdkVersion 26
             targetSdkVersion 34
         }
@@ -127,6 +133,10 @@ if (IS_ANDROID) {
             exclude 'META-INF/spring.schemas'
             exclude 'META-INF/license.txt'
             exclude 'META-INF/notice.txt'
+        }
+
+        kotlinOptions {
+            jvmTarget = JavaVersion.VERSION_1_8
         }
     }
 
