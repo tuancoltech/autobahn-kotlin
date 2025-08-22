@@ -12,6 +12,10 @@ class ToXBRTest {
     private fun expectXbr(x: Int): BigInteger =
             BigInteger.valueOf(x.toLong()).multiply(TEN18)
 
+    /**
+     * Test cases for xbr.network.Util#toXBR(int)
+     */
+
     @Test
     fun zero_returnsZero() {
         val actual = toXBR(0)
@@ -71,5 +75,127 @@ class ToXBRTest {
 
         assertEquals(BigInteger.valueOf(min.toLong()), minActual.divide(TEN18))
         assertEquals(BigInteger.ZERO, minActual.mod(TEN18))
+    }
+
+    /**
+     * Test cases for xbr.network.Util#toXBR(byte[])
+     */
+    // --- Exceptional cases ---
+
+    @Test(expected = NullPointerException::class)
+    fun toXBR_null_throwsNullPointerException() {
+        // When: null is passed
+        // Then: NPE (BigInteger(byte[]) dereferences the array)
+        @Suppress("PLATFORM_CLASS_MAPPED_TO_KOTLIN") // clarity for Java null
+        val bytes: ByteArray? = null
+        toXBR(bytes) // should throw
+    }
+
+    @Test(expected = NumberFormatException::class)
+    fun toXBR_emptyArray_throwsNumberFormatException() {
+        // BigInteger(byte[]) requires at least one byte
+        toXBR(byteArrayOf())
+    }
+
+    // --- Zero representations ---
+
+    @Test
+    fun toXBR_singleZero_isZero() {
+        val result = toXBR(byteArrayOf(0x00.toByte()))
+        assertEquals(BigInteger.ZERO, result)
+    }
+
+    @Test
+    fun toXBR_multipleLeadingZeros_isZero() {
+        val result = toXBR(byteArrayOf(0x00, 0x00).map { it.toByte() }.toByteArray())
+        assertEquals(BigInteger.ZERO, result)
+    }
+
+    // --- Positive numbers (no sign bit) ---
+
+    @Test
+    fun toXBR_smallPositive_noSignExtension() {
+        // 0x7F = 127
+        val result = toXBR(byteArrayOf(0x7F.toByte()))
+        assertEquals(BigInteger.valueOf(127), result)
+    }
+
+    @Test
+    fun toXBR_multibytePositive_noHighBitSet() {
+        // 0x01 0x00 = 256
+        val result = toXBR(byteArrayOf(0x01.toByte(), 0x00.toByte()))
+        assertEquals(BigInteger.valueOf(256), result)
+    }
+
+    @Test
+    fun toXBR_largePositiveBeyondLong() {
+        // 0x01 0x00 0x00 0x00 0x00 0x00  = 2^40
+        val bytes = byteArrayOf(
+            0x01.toByte(), 0x00.toByte(), 0x00.toByte(),
+            0x00.toByte(), 0x00.toByte(), 0x00.toByte()
+        )
+        val result = toXBR(bytes)
+        assertEquals(BigInteger.ONE.shiftLeft(40), result)
+    }
+
+    // --- Positive numbers that would be negative without a leading 0x00 ---
+
+    @Test
+    fun toXBR_positiveWithExplicitSignByte() {
+        // 0x00 0x80 = +128  (without the 0x00, 0x80 would be -128)
+        val result = toXBR(byteArrayOf(0x00.toByte(), 0x80.toByte()))
+        assertEquals(BigInteger.valueOf(128), result)
+    }
+
+    @Test
+    fun toXBR_positiveEdgeMaxBeforeSignFlip() {
+        // 0x7F 0xFF = 32767
+        val result = toXBR(byteArrayOf(0x7F.toByte(), 0xFF.toByte()))
+        assertEquals(BigInteger.valueOf(32767), result)
+    }
+
+    // --- Negative numbers (two's complement) ---
+
+    @Test
+    fun toXBR_negativeSingleByteFF_isMinusOne() {
+        val result = toXBR(byteArrayOf(0xFF.toByte()))
+        assertEquals(BigInteger.valueOf(-1), result)
+    }
+
+    @Test
+    fun toXBR_negativeSingleByte80_isMinus128() {
+        val result = toXBR(byteArrayOf(0x80.toByte()))
+        assertEquals(BigInteger.valueOf(-128), result)
+    }
+
+    @Test
+    fun toXBR_negativeMultibyteFF00_isMinus256() {
+        // 0xFF 0x00 in two's complement = -256
+        val result = toXBR(byteArrayOf(0xFF.toByte(), 0x00.toByte()))
+        assertEquals(BigInteger.valueOf(-256), result)
+    }
+
+    @Test
+    fun toXBR_negativeWithSignExtension_isStillMinusOne() {
+        // 0xFF 0xFF = -1 (proper sign extension)
+        val result = toXBR(byteArrayOf(0xFF.toByte(), 0xFF.toByte()))
+        assertEquals(BigInteger.valueOf(-1), result)
+    }
+
+    @Test
+    fun toXBR_negativeNearEdge() {
+        // 0xFF 0x7F = -129
+        val result = toXBR(byteArrayOf(0xFF.toByte(), 0x7F.toByte()))
+        assertEquals(BigInteger.valueOf(-129), result)
+    }
+
+    // --- Mixed leading zeros (should be ignored except for sign forcing) ---
+
+    @Test
+    fun toXBR_positiveWithExtraLeadingZeros_isSameValue() {
+        // 0x00 0x00 0x01 0x02 = 258
+        val bytes = byteArrayOf(0x00, 0x00, 0x01, 0x02).map { it.toByte() }.toByteArray()
+        val result = toXBR(bytes)
+        assertEquals(BigInteger.valueOf(258), result)
     }
 }
