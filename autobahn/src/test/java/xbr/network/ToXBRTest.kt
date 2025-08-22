@@ -198,4 +198,148 @@ class ToXBRTest {
         val result = toXBR(bytes)
         assertEquals(BigInteger.valueOf(258), result)
     }
+
+    /**
+     * Test cases for xbr.network.Util.toXBR(java.lang.Object)
+     */
+    // -------- Type-related & nullability behaviors (Object param) --------
+
+    @Test(expected = NullPointerException::class)
+    fun toXBR_nullObject_throwsNullPointerException() {
+        // Java cast of null to byte[] yields null; BigInteger(null) -> NPE
+        val obj: Any? = null
+        toXBR(obj)
+    }
+
+    @Test(expected = ClassCastException::class)
+    fun toXBR_stringObject_throwsClassCastException() {
+        // Not a byte[] -> (byte[]) cast fails
+        val obj: Any = "not bytes"
+        toXBR(obj)
+    }
+
+    @Test(expected = ClassCastException::class)
+    fun toXBR_boxedByteArray_throwsClassCastException() {
+        // Array<Byte> (boxed) is Byte[] at runtime, not byte[] -> cast fails
+        val boxed: Array<Byte> = arrayOf(0x01.toByte(), 0x02.toByte())
+        val obj: Any = boxed
+        toXBR(obj)
+    }
+
+    // -------- Empty array behavior --------
+
+    @Test(expected = NumberFormatException::class)
+    fun toXBRFromObject_emptyPrimitiveByteArray_throwsNumberFormatException() {
+        // BigInteger(byte[]) requires at least one byte
+        val obj: Any = byteArrayOf()
+        toXBR(obj)
+    }
+
+    // -------- Zero encodings --------
+
+    @Test
+    fun toXBRFromObject_singleZero_isZero() {
+        val obj: Any = byteArrayOf(0x00)
+        val result = toXBR(obj)
+        assertEquals(BigInteger.ZERO, result)
+    }
+
+    @Test
+    fun toXBRFromObject_multipleLeadingZeros_isZero() {
+        val obj: Any = byteArrayOf(0x00, 0x00)
+        val result = toXBR(obj)
+        assertEquals(BigInteger.ZERO, result)
+    }
+
+    // -------- Positive numbers (no sign bit set) --------
+
+    @Test
+    fun toXBRFromObject_smallPositive_noSignExtension() {
+        val obj: Any = byteArrayOf(0x7F) // 127
+        val result = toXBR(obj)
+        assertEquals(BigInteger.valueOf(127), result)
+    }
+
+    @Test
+    fun toXBRFromObject_multibytePositive_noHighBitSet() {
+        val obj: Any = byteArrayOf(0x01, 0x00) // 256
+        val result = toXBR(obj)
+        assertEquals(BigInteger.valueOf(256), result)
+    }
+
+    @Test
+    fun toXBRFromObject_largePositiveBeyondLong() {
+        // 0x01 00 00 00 00 00 = 2^40
+        val obj: Any = byteArrayOf(0x01, 0x00, 0x00, 0x00, 0x00, 0x00)
+        val result = toXBR(obj)
+        assertEquals(BigInteger.ONE.shiftLeft(40), result)
+    }
+
+    // -------- Positive values that need a leading 0x00 to avoid negative --------
+
+    @Test
+    fun toXBRFromObject_positiveWithExplicitSignByte() {
+        // 0x00 0x80 = +128 (without 0x00, 0x80 would be -128)
+        val obj: Any = byteArrayOf(0x00, 0x80.toByte())
+        val result = toXBR(obj)
+        assertEquals(BigInteger.valueOf(128), result)
+    }
+
+    @Test
+    fun toXBRFromObject_positiveEdgeMaxBeforeSignFlip() {
+        // 0x7F 0xFF = 32767
+        val obj: Any = byteArrayOf(0x7F, 0xFF.toByte())
+        val result = toXBR(obj)
+        assertEquals(BigInteger.valueOf(32767), result)
+    }
+
+    // -------- Negative numbers (two's complement) --------
+
+    @Test
+    fun toXBRFromObject_negativeSingleByteFF_isMinusOne() {
+        val obj: Any = byteArrayOf(0xFF.toByte())
+        val result = toXBR(obj)
+        assertEquals(BigInteger.valueOf(-1), result)
+    }
+
+    @Test
+    fun toXBRFromObject_negativeSingleByte80_isMinus128() {
+        val obj: Any = byteArrayOf(0x80.toByte())
+        val result = toXBR(obj)
+        assertEquals(BigInteger.valueOf(-128), result)
+    }
+
+    @Test
+    fun toXBRFromObject_negativeMultibyteFF00_isMinus256() {
+        // 0xFF 0x00 = -256
+        val obj: Any = byteArrayOf(0xFF.toByte(), 0x00)
+        val result = toXBR(obj)
+        assertEquals(BigInteger.valueOf(-256), result)
+    }
+
+    @Test
+    fun toXBRFromObject_negativeWithSignExtension_isStillMinusOne() {
+        // 0xFF 0xFF = -1
+        val obj: Any = byteArrayOf(0xFF.toByte(), 0xFF.toByte())
+        val result = toXBR(obj)
+        assertEquals(BigInteger.valueOf(-1), result)
+    }
+
+    @Test
+    fun toXBRFromObject_negativeNearEdge() {
+        // 0xFF 0x7F = -129
+        val obj: Any = byteArrayOf(0xFF.toByte(), 0x7F)
+        val result = toXBR(obj)
+        assertEquals(BigInteger.valueOf(-129), result)
+    }
+
+    // -------- Leading zeros beyond sign byte --------
+
+    @Test
+    fun toXBRFromObject_positiveWithExtraLeadingZeros_isSameValue() {
+        // 0x00 0x00 0x01 0x02 = 258
+        val obj: Any = byteArrayOf(0x00, 0x00, 0x01, 0x02)
+        val result = toXBR(obj)
+        assertEquals(BigInteger.valueOf(258), result)
+    }
 }
