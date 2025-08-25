@@ -45,6 +45,7 @@ dependencies {
         implementation 'io.netty:netty-handler:4.1.106.Final'
     }
     testImplementation 'junit:junit:4.13.2'
+    testImplementation "org.robolectric:robolectric:4.15.1"
 }
 
 // Create the pom configuration:
