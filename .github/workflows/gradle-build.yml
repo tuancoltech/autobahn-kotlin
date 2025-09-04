@@ -20,5 +20,5 @@ jobs:
         distribution: temurin
         java-version: ${{ matrix.java }}
     - run: |
-        ./gradlew clean build
+        ./gradlew clean build --stacktrace
         ./gradlew test
