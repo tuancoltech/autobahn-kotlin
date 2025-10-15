@@ -15,10 +15,15 @@ def groupID = 'io.crossbar.autobahn'
 def licenseName = 'MIT'
 def licenseUrl = 'https://opensource.org/licenses/MIT'
 def relVersion = System.getenv().containsKey('AUTOBAHN_BUILD_VERSION') ? System.getenv(
-        'AUTOBAHN_BUILD_VERSION'): '21.4.1'
+        'AUTOBAHN_BUILD_VERSION'): '21.7.3'
 def siteUrl = 'https://github.com/crossbario/autobahn-java'
 def SONATYPE_USER = System.getenv().containsKey('SONATYPE_USER') ? System.getenv('SONATYPE_USER'): ''
 def SONATYPE_PASS = System.getenv().containsKey('SONATYPE_PASS') ? System.getenv('SONATYPE_PASS'): ''
+
+apply from: 'https://gist.githubusercontent.com/tuancoltech/1d9f528b387f84757123a230662c81ae/raw/b326adba12613677e97b04e386a9983cc9fb565a/read_properties.gradle'
+
+def mavenUser = readLocalProperty("PUBLISH_LIB_ACTOR")
+def mavenToken = readLocalProperty("PUBLISH_LIB_TOKEN")
 
 dependencies {
     api 'com.fasterxml.jackson.core:jackson-core:2.16.1'
@@ -111,43 +116,44 @@ if (IS_ANDROID) {
         }
     }
 
-    task sourcesJar(type: Jar) {
-        archiveClassifier.set("sources")
-        from android.sourceSets.main.java.srcDirs
-    }
-
-    task javadoc(type: Javadoc) {
-        failOnError false
-        source = android.sourceSets.main.java.sourceFiles
-        classpath += project.files(android.getBootClasspath().join(File.pathSeparator))
-        classpath += configurations.implementation
-    }
-
-    task javadocJar(type: Jar, dependsOn: javadoc) {
-        archiveClassifier.set("javadoc")
-        from javadoc.destinationDir
-    }
+//    task sourcesJar(type: Jar) {
+//        archiveClassifier.set("sources")
+//        from android.sourceSets.main.java.srcDirs
+//    }
+//
+//    task javadoc(type: Javadoc) {
+//        failOnError false
+//        source = android.sourceSets.main.java.sourceFiles
+//        classpath += project.files(android.getBootClasspath().join(File.pathSeparator))
+//        classpath += configurations.implementation
+//    }
+//
+//    task javadocJar(type: Jar, dependsOn: javadoc) {
+//        archiveClassifier.set("javadoc")
+//        from javadoc.destinationDir
+//    }
 
     project.archivesBaseName = ARTIFACT_ANDROID
     group = groupID
     version = relVersion
 
-    afterEvaluate {
-        javadoc.classpath += files(android.libraryVariants.collect { variant ->
-            variant.javaCompileProvider.get().classpath.files
-        })
-    }
+//    afterEvaluate {
+//        javadoc.classpath += files(android.libraryVariants.collect { variant ->
+//            variant.javaCompileProvider.get().classpath.files
+//        })
+//    }
 
     publishing {
         repositories {
-            maven {
-                name 'central'
-                url 'https://oss.sonatype.org/service/local/staging/deploy/maven2/'
-                credentials {
-                    username SONATYPE_USER
-                    password SONATYPE_PASS
-                }
-            }
+//            maven {
+//                name 'central'
+//                url 'https://oss.sonatype.org/service/local/staging/deploy/maven2/'
+//                credentials {
+//                    username SONATYPE_USER
+//                    password SONATYPE_PASS
+//                }
+//            }
+//            mavenLocal()
         }
     }
 } else {
@@ -202,8 +208,8 @@ afterEvaluate {
                     artifactId IS_NEXT ? ARTIFACT_NEXT : ARTIFACT_JAVA
                 }
 
-                artifact sourcesJar
-                artifact javadocJar
+//                artifact sourcesJar
+//                artifact javadocJar
 
                 groupId groupID
                 version relVersion
@@ -218,16 +224,17 @@ afterEvaluate {
         }
         repositories {
             maven {
-                name 'central'
-                url 'https://oss.sonatype.org/service/local/staging/deploy/maven2/'
+                name = "GithubPackages"
+                url = "https://maven.pkg.github.com/tuancoltech/autobahn-kotlin"
                 credentials {
-                    username SONATYPE_USER
-                    password SONATYPE_PASS
+                    username = mavenUser
+                    password = mavenToken
                 }
             }
+//            mavenLocal()
         }
         signing {
-            required true
+            required false
             sign publishing.publications.release
         }
     }

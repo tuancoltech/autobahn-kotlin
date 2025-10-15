@@ -367,6 +367,25 @@ Android Studio, it will tell you if there are any missing dependencies, install 
 and then just build the project from `Build > Rebuild Project` and you will have the
 aar artifact in `autobahn/build/outputs/aar/`
 
+### Publish a new Android build version
+
+1. Increment the release version in `build.gradle` under `autobahn` module
+```diff
+-def relVersion = System.getenv().containsKey('AUTOBAHN_BUILD_VERSION') ? System.getenv(
+        'AUTOBAHN_BUILD_VERSION'): '21.7.2'
++def relVersion = System.getenv().containsKey('AUTOBAHN_BUILD_VERSION') ? System.getenv(
+        'AUTOBAHN_BUILD_VERSION'): '21.7.3'
+```
+1. Generate the artifact
+```groovy
+./gradlew autobahn:assemble
+```
+
+2. Publish the generated artifact to maven repository
+```groovy
+./gradlew autobahn:publish
+```
+
 #### Netty build
 
 To produce a build for non-android systems make sure you have docker and make
