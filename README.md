@@ -371,10 +371,10 @@ aar artifact in `autobahn/build/outputs/aar/`
 
 1. Increment the release version in `build.gradle` under `autobahn` module
 ```diff
--def relVersion = System.getenv().containsKey('AUTOBAHN_BUILD_VERSION') ? System.getenv(
-        'AUTOBAHN_BUILD_VERSION'): '21.7.2'
-+def relVersion = System.getenv().containsKey('AUTOBAHN_BUILD_VERSION') ? System.getenv(
-        'AUTOBAHN_BUILD_VERSION'): '21.7.3'
+def relVersion = System.getenv().containsKey('AUTOBAHN_BUILD_VERSION') ? System.getenv(
+-        'AUTOBAHN_BUILD_VERSION'): '21.7.2'
+def relVersion = System.getenv().containsKey('AUTOBAHN_BUILD_VERSION') ? System.getenv(
++        'AUTOBAHN_BUILD_VERSION'): '21.7.3'
 ```
 1. Generate the artifact
 ```groovy
